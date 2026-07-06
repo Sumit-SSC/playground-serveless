@@ -480,10 +480,7 @@ module.exports = async (req, res) => {
 	const searchEnc = encodeURIComponent(q.replace(/\s+/g, '+'));
 	const locEnc = encodeURIComponent(String(location).replace(/\s+/g, '+'));
 	const allRssFeeds = [
-		{ source: 'remotive', url: 'https://remotive.com/feed' },
-		{ source: 'remotive', url: 'https://remotive.com/remote-jobs/feed/data' },
-		{ source: 'remotive', url: 'https://remotive.com/remote-jobs/feed/ai-ml' },
-		{ source: 'remotive', url: 'https://remotive.com/remote-jobs/feed/analytics' },
+		// Remotive RSS feeds are unstable/404 frequently; rely on Remotive JSON API above instead.
 		{ source: 'weworkremotely', url: 'https://weworkremotely.com/remote-jobs.rss' },
 		{ source: 'jobscollider', url: 'https://jobscollider.com/remote-jobs.rss' },
 		{ source: 'jobscollider', url: 'https://jobscollider.com/remote-data-jobs.rss' },
@@ -816,6 +813,48 @@ module.exports = async (req, res) => {
 		} catch (e) { /* LinkedIn blocks/throttles aggressively; optional */ }
 	}
 	
+	// 6d) Query self-hosted Python APIs (Railway / Koyeb) if configured
+	const railwayUrl = process.env.RAILWAY_API_URL || '';
+	const koyebUrl = process.env.KOYEB_API_URL || '';
+	const selfHostedApis = [];
+	if (railwayUrl) selfHostedApis.push({ name: 'railway', url: railwayUrl });
+	if (koyebUrl) selfHostedApis.push({ name: 'koyeb', url: koyebUrl });
+
+	if (selfHostedApis.length > 0) {
+		await Promise.all(selfHostedApis.map(async (api) => {
+			try {
+				const fetchUrl = `${api.url.replace(/\/$/, '')}/jobs?q=${encodeURIComponent(q)}&days=${days}&limit=150`;
+				const data = await fetchJson(fetchUrl, { timeout: 18000 });
+				if (data && data.ok && Array.isArray(data.jobs)) {
+					data.jobs.forEach((it) => {
+						if (!it || !it.title || !it.url) return;
+						const full = (it.title + ' ' + (it.company || '') + ' ' + (it.location || '') + ' ' + (it.description || ''));
+						if (!containsAny(full, keywords)) return;
+						const role = roleTierRank(it.title || '', it.description || '');
+						if (role.score < 0) return; // Filter out excluded roles
+						const expMatch = experienceLevelMatch(it.title || '', it.description || '');
+						const locScore = locationRank(it.location || 'Remote');
+						jobs.push(normalizeJob({
+							id: api.name + '_' + (it.id || String(it.url).replace(/[^a-zA-Z0-9]/g, '_')),
+							title: it.title,
+							company: it.company || 'Unknown',
+							location: it.location || 'Remote',
+							url: it.url,
+							description: it.description || '',
+							source: it.source || api.name,
+							date: it.date || nowIso(),
+							tags: Array.isArray(it.tags) ? it.tags.concat([api.name]) : [api.name],
+							_rank: typeof it.match_score === 'number' ? it.match_score : (role.score + locScore + expMatch.score),
+							_roleTier: role.tier
+						}));
+					});
+				}
+			} catch (e) {
+				// API optional
+			}
+		}));
+	}
+
 	// 7) Add cached headless jobs from KV (if available) — faster than live scraping
 	if (cachedHeadlessJobs.length > 0) {
 		cachedHeadlessJobs.forEach((it) => {
