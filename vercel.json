@@ -11,6 +11,7 @@
     {"src": "api/jobs-refresh.js", "use": "@vercel/node"},
     {"src": "api/jobs-sources-debug.js", "use": "@vercel/node"},
     {"src": "api/job-boards.js", "use": "@vercel/node"},
+    {"src": "api/jobs-proxy.js", "use": "@vercel/node"},
     {"src": "index.html", "use": "@vercel/static"},
     {"src": "pages/jobs.html", "use": "@vercel/static"}
   ],
@@ -25,6 +26,7 @@
     {"src": "/api/jobs-refresh", "dest": "/api/jobs-refresh.js"},
     {"src": "/api/jobs-sources-debug", "dest": "/api/jobs-sources-debug.js"},
     {"src": "/api/job-boards", "dest": "/api/job-boards.js"},
+    {"src": "/api/jobs-proxy(.*)", "dest": "/api/jobs-proxy.js"},
     {"src": "/jobs", "dest": "/pages/jobs.html"},
     {"src": "/", "dest": "/index.html"},
     {"src": "/(.*)", "dest": "/$1"}
