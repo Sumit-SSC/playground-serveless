@@ -169,7 +169,8 @@ const RSS_ALLOWED_HOSTS = new Set([
 	'himalayas.app', 'www.himalayas.app',
 	'authenticjobs.com', 'www.authenticjobs.com',
 	'hnrss.org', 'www.hnrss.org',
-	'rssjobs.app', 'www.rssjobs.app'
+	'rssjobs.app', 'www.rssjobs.app',
+	'justremote.co', 'www.justremote.co'
 ]);
 
 function stripTag(xml, tag) {
@@ -218,6 +219,116 @@ async function fetchRss(baseUrl, feedUrl, count) {
 	const data = await fetchJson(u, { timeout: RSS_TIMEOUT_MS });
 	if (!data || !data.ok || !Array.isArray(data.items)) return [];
 	return data.items;
+}
+
+function simpleHash(str) {
+	let hash = 0;
+	for (let i = 0; i < str.length; i++) {
+		const char = str.charCodeAt(i);
+		hash = ((hash << 5) - hash) + char;
+		hash |= 0;
+	}
+	return Math.abs(hash).toString(36);
+}
+
+async function fetchGreenhouseJobs(slug, days, keywords) {
+	const boardSlug = (slug || '').trim();
+	if (!boardSlug) return [];
+	const url = `https://boards-api.greenhouse.io/v1/boards/${boardSlug}/jobs`;
+	try {
+		const data = await fetchJson(url, { timeout: 15000 });
+		if (!data || !Array.isArray(data.jobs)) return [];
+		
+		const jobs = [];
+		const cutoff = Date.now() - (days * 24 * 60 * 60 * 1000);
+		for (const it of data.jobs) {
+			if (!it || !it.absolute_url) continue;
+			const title = (it.title || '').trim();
+			const link = it.absolute_url;
+			const loc = (it.location && it.location.name) ? it.location.name : 'Unknown';
+			const updated = it.updated_at || it.created_at || '';
+			const dt = parseDateLike(updated);
+			if (dt && dt.getTime() < cutoff) continue;
+			
+			const full = (title + ' ' + loc + ' ' + boardSlug).toLowerCase();
+			if (!containsAny(full, keywords)) continue;
+			
+			const role = roleTierRank(title, loc + ' ' + boardSlug);
+			if (role.score < 0) continue;
+			
+			const expMatch = experienceLevelMatch(title, loc + ' ' + boardSlug);
+			const locScore = locationRank(loc);
+			
+			jobs.push(normalizeJob({
+				id: `greenhouse_${boardSlug}_` + simpleHash(link),
+				title,
+				company: boardSlug,
+				location: loc,
+				url: link,
+				description: '',
+				source: 'greenhouse',
+				date: dt ? dt.toISOString() : nowIso(),
+				tags: ['api', 'greenhouse'],
+				_rank: role.score + locScore + expMatch.score,
+				_roleTier: role.tier
+			}));
+		}
+		return jobs;
+	} catch (e) {
+		return [];
+	}
+}
+
+async function fetchLeverJobs(slug, days, keywords) {
+	const boardSlug = (slug || '').trim();
+	if (!boardSlug) return [];
+	const url = `https://api.lever.co/v0/postings/${boardSlug}?mode=json`;
+	try {
+		const data = await fetchJson(url, { timeout: 15000 });
+		if (!data || !Array.isArray(data)) return [];
+		
+		const jobs = [];
+		const cutoff = Date.now() - (days * 24 * 60 * 60 * 1000);
+		for (const it of data) {
+			if (!it || !it.hostedUrl) continue;
+			const title = (it.text || '').trim();
+			const link = it.hostedUrl;
+			const categories = it.categories || {};
+			const loc = categories.location || 'Unknown';
+			const created = it.createdAt;
+			let dt = null;
+			if (typeof created === 'number' && created > 0) {
+				dt = new Date(created);
+			}
+			if (dt && dt.getTime() < cutoff) continue;
+			
+			const full = (title + ' ' + loc + ' ' + boardSlug).toLowerCase();
+			if (!containsAny(full, keywords)) continue;
+			
+			const role = roleTierRank(title, loc + ' ' + boardSlug);
+			if (role.score < 0) continue;
+			
+			const expMatch = experienceLevelMatch(title, loc + ' ' + boardSlug);
+			const locScore = locationRank(loc);
+			
+			jobs.push(normalizeJob({
+				id: `lever_${boardSlug}_` + simpleHash(link),
+				title,
+				company: boardSlug,
+				location: loc,
+				url: link,
+				description: '',
+				source: 'lever',
+				date: dt ? dt.toISOString() : nowIso(),
+				tags: ['api', 'lever'],
+				_rank: role.score + locScore + expMatch.score,
+				_roleTier: role.tier
+			}));
+		}
+		return jobs;
+	} catch (e) {
+		return [];
+	}
 }
 
 function containsAny(text, keywords) {
@@ -501,7 +612,8 @@ module.exports = async (req, res) => {
 		{ source: 'jobspresso', url: 'https://jobspresso.co/remote-jobs/feed/' },
 		{ source: 'himalayas', url: 'https://himalayas.app/jobs/feed' },
 		{ source: 'authentic_jobs', url: 'https://authenticjobs.com/rss/' },
-		{ source: 'hn_jobs', url: 'https://hnrss.org/jobs' }
+		{ source: 'hn_jobs', url: 'https://hnrss.org/jobs' },
+		{ source: 'justremote', url: 'https://justremote.co/remote-jobs/feed.xml' }
 	];
 	const rssFeeds = allRssFeeds.filter(f => wantSource(f.source));
 
@@ -689,6 +801,26 @@ module.exports = async (req, res) => {
 				}));
 			}
 		} catch (e) { /* jobicy optional */ }
+	}
+
+	// 4e) Greenhouse & Lever API company boards
+	const greenhouseSlugs = (process.env.GREENHOUSE_BOARDS || 'stripe,airtable,databricks,spacex,doordash,harness').split(',').map(s => s.trim()).filter(Boolean);
+	const leverSlugs = (process.env.LEVER_BOARDS || 'spotify,palantir,netflix,lever').split(',').map(s => s.trim()).filter(Boolean);
+
+	if (wantSource('greenhouse') || wantSource('lever')) {
+		const greenhousePromises = wantSource('greenhouse')
+			? greenhouseSlugs.map(slug => fetchGreenhouseJobs(slug, days, keywords))
+			: [];
+		const leverPromises = wantSource('lever')
+			? leverSlugs.map(slug => fetchLeverJobs(slug, days, keywords))
+			: [];
+			
+		const boardResults = await Promise.allSettled([...greenhousePromises, ...leverPromises]);
+		boardResults.forEach(r => {
+			if (r.status === 'fulfilled' && Array.isArray(r.value)) {
+				jobs.push(...r.value);
+			}
+		});
 	}
 
 	// 5) Headless browser (WeWorkRemotely) — only when ENABLE_HEADLESS=1; runs in parallel with short timeout
