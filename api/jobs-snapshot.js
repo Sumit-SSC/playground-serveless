@@ -639,7 +639,20 @@ module.exports = async (req, res) => {
 	// Increased RSS feed limits for more results (50 -> 100-150 per feed)
 	const rssResults = await Promise.allSettled(rssFeeds.map(async (f) => {
 		try {
-			// Use higher limits for popular sources
+			if (f.source === 'rssjobs.app' && baseUrl) {
+				const u = baseUrl + '/api/rssjobs?q=' + encodeURIComponent(q) + '&location=' + encodeURIComponent(location);
+				const data = await fetchJson(u, { timeout: RSS_TIMEOUT_MS });
+				if (data && data.ok && Array.isArray(data.jobs)) {
+					const items = data.jobs.map(j => ({
+						title: j.title + ' at ' + j.company,
+						link: j.url,
+						pubDate: j.date,
+						description: j.description
+					}));
+					return { source: f.source, items, url: f.url };
+				}
+				return { source: f.source, items: [], url: f.url };
+			}
 			const limit = (f.source === 'indeed' || f.source === 'wellfound' || f.source === 'remotive') ? 150 : 100;
 			const items = await fetchRssDirect(f.url, limit);
 			return { source: f.source, items, url: f.url };
