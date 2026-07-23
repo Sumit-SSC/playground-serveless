@@ -23,11 +23,6 @@ module.exports = async (req, res) => {
 		return;
 	}
 
-	if (!token) {
-		res.status(500).json({ ok: false, error: 'HF_READ_TOKEN environment variable is not configured on Vercel.' });
-		return;
-	}
-
 	// Determine endpoint from request path (GET /jobs, POST /refresh, GET /health)
 	let targetPath = '/jobs';
 	let method = 'GET';
@@ -50,10 +45,12 @@ module.exports = async (req, res) => {
 		const options = {
 			method: method,
 			headers: {
-				'Authorization': `Bearer ${token}`,
 				'Content-Type': 'application/json'
 			}
 		};
+		if (token) {
+			options.headers['Authorization'] = `Bearer ${token}`;
+		}
 
 		const response = await fetch(targetUrl, options);
 		const data = await response.json();
