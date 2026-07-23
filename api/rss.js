@@ -283,6 +283,28 @@ module.exports = async (req, res) => {
 		});
 	}
 
+	// Trigger rssjobs.app feed generation if needed
+	const hostname = (feedUrl.hostname || '').toLowerCase();
+	if (hostname.includes('rssjobs.app')) {
+		try {
+			const keywords = feedUrl.searchParams.get('keywords');
+			const location = feedUrl.searchParams.get('location');
+			if (keywords && location) {
+				await fetch('https://rssjobs.app/feeds', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/x-www-form-urlencoded',
+						'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+					},
+					body: new URLSearchParams({ keywords, location }).toString(),
+					signal: AbortSignal.timeout(8000)
+				});
+			}
+		} catch (err) {
+			console.warn('rssjobs.app trigger failed:', err.message);
+		}
+	}
+
 	try {
 		const r = await fetchWithTimeout(feedUrl.toString());
 		if (!r.ok) return res.status(502).json({ ok: false, error: 'Fetch failed', status: r.status });
