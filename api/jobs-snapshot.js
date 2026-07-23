@@ -629,6 +629,11 @@ module.exports = async (req, res) => {
 				rssFeeds.push({ source: 'rssjobs.app', url: rssjobsUrlParam });
 			}
 		} catch (e) { /* ignore invalid URL */ }
+	} else if (wantSource('rssjobs.app')) {
+		const kw_enc = encodeURIComponent(q);
+		const loc_enc = encodeURIComponent(location);
+		const autoUrl = `https://rssjobs.app/feeds?keywords=${kw_enc}&location=${loc_enc}`;
+		rssFeeds.push({ source: 'rssjobs.app', url: autoUrl });
 	}
 
 	// Increased RSS feed limits for more results (50 -> 100-150 per feed)
