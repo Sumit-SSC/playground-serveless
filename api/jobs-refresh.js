@@ -77,6 +77,39 @@ module.exports = async (req, res) => {
 		}
 	}
 
+	const spaceHost = (process.env.HF_SPACE_HOST || '').trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
+	if (spaceHost && jobs.length > 0) {
+		const syncUrl = `https://${spaceHost}/jobs/batch`;
+		const syncOptions = {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify(jobs.map(j => ({
+				id: j.id,
+				title: j.title || 'Unknown Role',
+				company: j.company || 'Unknown Company',
+				location: j.location || 'Remote',
+				url: j.url,
+				description: j.description || '',
+				source: j.source || 'vercel_scraped',
+				date: j.date || null,
+				tags: j.tags || [],
+				match_score: j.match_score || null,
+				yoe_min: j.yoe_min || null,
+				yoe_max: j.yoe_max || null,
+				salary_min: j.salary_min || null,
+				salary_max: j.salary_max || null,
+				currency: j.currency || null,
+				visa_sponsorship: j.visa_sponsorship || null,
+				job_type: j.job_type || null
+			})))
+		};
+		fetch(syncUrl, syncOptions).catch(err => {
+			console.error('Failed to sync Vercel jobs to Render:', err.message);
+		});
+	}
+
 	return res.status(200).json({
 		ok: true,
 		generatedAt: new Date().toISOString(),
