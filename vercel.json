@@ -14,7 +14,8 @@
     {"src": "api/job-boards.js", "use": "@vercel/node"},
     {"src": "api/jobs-proxy.js", "use": "@vercel/node"},
     {"src": "index.html", "use": "@vercel/static"},
-    {"src": "pages/jobs.html", "use": "@vercel/static"}
+    {"src": "pages/jobs.html", "use": "@vercel/static"},
+    {"src": "pages/chatbot.html", "use": "@vercel/static"}
   ],
   "routes": [
     {"src": "/api/omdb(.*)", "dest": "/api/omdb.js"},

@@ -183,31 +183,6 @@
 			Test (open in new tab; add <code>X-API-Key</code> if API is protected): <a href="#" id="api-test-poster">Poster by title</a> · <a href="#" id="api-test-search">Search</a> · <a href="#" id="api-test-id">By ID</a>
 		</div>
 
-		<!-- Jobs API test UI (uses the same Vercel deployment) -->
-		<div id="jobs-panel" style="margin-top:2.5rem; padding-top:1.5rem; border-top:1px solid #334155;">
-			<h1 style="font-size:1.1rem; margin-bottom:0.75rem;">Jobs API – test UI</h1>
-			<p class="hint" style="margin-top:0; margin-bottom:0.75rem;">
-				This panel calls <code>/api/jobs-*</code> on this Vercel app and shows aggregated data/analytics/BI roles.
-			</p>
-			<div class="search-row" style="flex-wrap:wrap; gap:0.5rem 0.75rem;">
-				<input type="text" id="jobs-q" placeholder="Query (e.g. data analyst)" style="max-width:260px;">
-				<input type="text" id="jobs-days" placeholder="Days (e.g. 3)" style="max-width:90px;">
-				<input type="text" id="jobs-limit" placeholder="Limit (e.g. 80)" style="max-width:90px;">
-				<input type="text" id="jobs-location" placeholder="Location (e.g. remote)" style="max-width:140px;">
-			</div>
-			<div class="search-row" style="flex-wrap:wrap; gap:0.5rem 0.75rem; margin-top:0.25rem;">
-				<button type="button" id="jobs-btn-snapshot">Load snapshot (RSS / APIs)</button>
-				<button type="button" id="jobs-btn-cached" class="secondary">Load cached (KV)</button>
-				<button type="button" id="jobs-btn-refresh" class="secondary">Refresh all portals (headless)</button>
-				<button type="button" id="jobs-btn-sources" class="secondary">Sources debug</button>
-			</div>
-			<div id="jobs-status" class="hint" style="margin-top:0.5rem;"></div>
-			<div id="jobs-stats" class="api-info" style="margin-top:0.75rem; display:none;">
-				<div id="jobs-summary"></div>
-				<div id="jobs-sources"></div>
-			</div>
-			<div id="jobs-results" class="results-grid" style="margin-top:1rem;"></div>
-		</div>
 	</div>
 
 	<script>
@@ -422,7 +397,7 @@
 					actions.innerHTML = '<a href="' + detailUrl + '" target="_blank" rel="noopener">Open in new tab</a>' +
 						(data.imdbID ? '<a href="https://www.imdb.com/title/' + esc(data.imdbID) + '/" target="_blank" rel="noopener">View on IMDb</a>' : '');
 
-					currentDetail = { imdbID: data.imdbID || imdbID, title: data.Title || '', type: (data.Type || 'movie').toLowerCase() };
+					currentDetail = { imdbID: data.imdbID || imdbID, title: data.Title || '', type: (data.Type || 'movie').toLowerCase(), year: data.Year || '' };
 					if (currentDetail.type === 'series') currentDetail.type = 'series';
 					else currentDetail.type = 'movie';
 					document.getElementById('cinematerial-link').href = cinematerialPageUrl(currentDetail.imdbID, currentDetail.title, currentDetail.type);
@@ -439,7 +414,7 @@
 			var el = document.getElementById('posters-cinematerial');
 			if (!currentDetail.imdbID) { el.innerHTML = '<span class="hint">Select a title first.</span>'; return; }
 			el.innerHTML = '<span class="hint">Loading…</span>';
-			var q = 'i=' + encodeURIComponent(currentDetail.imdbID) + '&title=' + encodeURIComponent(currentDetail.title) + '&type=' + encodeURIComponent(currentDetail.type);
+			var q = 'i=' + encodeURIComponent(currentDetail.imdbID) + '&title=' + encodeURIComponent(currentDetail.title) + '&type=' + encodeURIComponent(currentDetail.type) + '&year=' + encodeURIComponent(currentDetail.year || '');
 			fetch(base + '/api/cinematerial?' + q, { headers: getApiKeyHeaders() })
 				.then(function (r) { return r.json(); })
 				.then(function (data) {
