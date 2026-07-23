@@ -356,13 +356,8 @@ function locationRank(location) {
 	const indiaCityRe = /(^|\b)(pune|mumbai|thane|navi mumbai|hyderabad|bangalore|bengaluru|chennai|delhi|delhi-ncr|gurgaon|noida)(\b|$)/;
 	const indiaRe = /(^|\b)(india|in)(\b|$)/;
 
-	if (isRemote && (indiaRe.test(loc) || indiaCityRe.test(loc))) {
-		return 150; // remote India highest
-	}
-
-	// Priority 2: Remote – all countries
 	if (isRemote) {
-		return 120;
+		return (indiaRe.test(loc) || indiaCityRe.test(loc)) ? 150 : 120;
 	}
 
 	// Priority 3: India cities (on-site / hybrid in key Indian hubs)
@@ -370,7 +365,8 @@ function locationRank(location) {
 		return 80;
 	}
 
-	return 0;
+	// On-site / Hybrid international roles - exclude by returning a huge negative penalty!
+	return -1000;
 }
 
 function roleTierRank(title, description) {
