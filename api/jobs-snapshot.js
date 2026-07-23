@@ -591,23 +591,14 @@ module.exports = async (req, res) => {
 	const searchEnc = encodeURIComponent(q.replace(/\s+/g, '+'));
 	const locEnc = encodeURIComponent(String(location).replace(/\s+/g, '+'));
 	const allRssFeeds = [
-		// Remotive RSS feeds are unstable/404 frequently; rely on Remotive JSON API above instead.
 		{ source: 'weworkremotely', url: 'https://weworkremotely.com/remote-jobs.rss' },
 		{ source: 'jobscollider', url: 'https://jobscollider.com/remote-jobs.rss' },
 		{ source: 'jobscollider', url: 'https://jobscollider.com/remote-data-jobs.rss' },
-		{ source: 'remoteok', url: 'https://remoteok.com/remote-jobs.rss' },
-		{ source: 'remoteok', url: 'https://remoteok.io/remote-jobs.rss' },
 		{ source: 'jobicy', url: 'https://jobicy.com/?feed=job_feed' },
-		{ source: 'wellfound', url: 'https://wellfound.com/jobs.rss?keywords=data-science&remote=true' },
-		{ source: 'wellfound', url: 'https://wellfound.com/jobs.rss?keywords=data-analyst&remote=true' },
-		{ source: 'wellfound', url: 'https://wellfound.com/jobs.rss?keywords=business-intelligence&remote=true' },
-		{ source: 'wellfound', url: 'https://wellfound.com/jobs.rss?keywords=analytics-engineer&remote=true' },
 		{ source: 'indeed', url: 'https://rss.indeed.com/rss?q=' + searchEnc + '&l=' + locEnc + '&radius=0' },
 		{ source: 'indeed', url: 'https://rss.indeed.com/rss?q=data+scientist&l=' + locEnc + '&radius=0' },
 		{ source: 'indeed', url: 'https://rss.indeed.com/rss?q=business+analyst&l=' + locEnc + '&radius=0' },
 		{ source: 'indeed', url: 'https://rss.indeed.com/rss?q=analytics+engineer&l=' + locEnc + '&radius=0' },
-		{ source: 'stackoverflow', url: 'https://stackoverflow.com/jobs/feed?q=' + searchEnc + '&l=' + locEnc + '&d=20&u=Km' },
-		{ source: 'stackoverflow', url: 'https://stackoverflow.com/jobs/feed?q=data+analyst&l=' + locEnc + '&d=20&u=Km' },
 		{ source: 'remote_co', url: 'https://remote.co/remote-jobs/feed/' },
 		{ source: 'jobspresso', url: 'https://jobspresso.co/remote-jobs/feed/' },
 		{ source: 'himalayas', url: 'https://himalayas.app/jobs/feed' },
