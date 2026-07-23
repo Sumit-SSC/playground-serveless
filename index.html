@@ -89,10 +89,53 @@
 
 	<div id="app">
 		<nav style="display: flex; gap: 1.5rem; margin-bottom: 2rem; border-bottom: 1px solid #334155; padding-bottom: 0.75rem;">
-			<a href="/" style="font-weight: 600; color: #818cf8; text-decoration: none; border-bottom: 2px solid #6366f1; padding-bottom: 0.75rem; margin-bottom: -0.85rem;">🎬 OMDb Movie Proxy</a>
-			<a href="/jobs" style="font-weight: 500; color: #94a3b8; text-decoration: none; padding-bottom: 0.75rem;">💼 Job Search Board</a>
+			<a href="#" id="nav-hub" style="font-weight: 600; color: #818cf8; text-decoration: none; border-bottom: 2px solid #6366f1; padding-bottom: 0.75rem; margin-bottom: -0.85rem;">🏠 Dashboard Hub</a>
+			<a href="#" id="nav-omdb" style="font-weight: 500; color: #94a3b8; text-decoration: none; padding-bottom: 0.75rem;">🎬 OMDb Movie Proxy</a>
+			<a href="/jobs" style="font-weight: 500; color: #94a3b8; text-decoration: none; padding-bottom: 0.75rem;">💼 Job Board</a>
+			<a href="/pages/chatbot.html" style="font-weight: 500; color: #94a3b8; text-decoration: none; padding-bottom: 0.75rem;">🤖 AI Chatbot</a>
 		</nav>
-		<h1>OMDb proxy – test UI</h1>
+
+		<!-- Subview 1: Dashboard Hub -->
+		<div id="dashboard-hub" style="display: block; margin-top: 1rem;">
+			<h2 style="font-size: 1.35rem; margin: 0 0 0.5rem 0; color: #f8fafc;">👋 Welcome to your Workspace Hub</h2>
+			<p style="margin: 0 0 2rem 0; font-size: 0.85rem; color: #94a3b8;">Select one of your connected development systems below:</p>
+			
+			<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+				<!-- Card 1: OMDb Movie Search -->
+				<div style="background: #1e293b; border: 1px solid #334155; padding: 1.5rem; border-radius: 12px; display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; transition: transform 0.2s, border-color 0.2s; cursor: pointer;" onclick="showSubview('omdb')" onmouseover="this.style.borderColor='#6366f1'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='#334155'; this.style.transform='translateY(0)'">
+					<div>
+						<span style="font-size: 2rem;">🎬</span>
+						<h3 style="font-size: 1.1rem; margin: 0.75rem 0 0.5rem 0; color: #f8fafc;">OMDb Movie Proxy</h3>
+						<p style="margin: 0; font-size: 0.82rem; color: #94a3b8; line-height: 1.45;">Search, filter, and audit movie assets, posters, and test proxy caches.</p>
+					</div>
+					<button type="button" style="margin-top: 1rem; width: 100%; text-align: center; background: #6366f1;">Launch Movie Proxy</button>
+				</div>
+
+				<!-- Card 2: Job Board -->
+				<div style="background: #1e293b; border: 1px solid #334155; padding: 1.5rem; border-radius: 12px; display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; transition: transform 0.2s, border-color 0.2s; cursor: pointer;" onclick="window.location.href='/jobs'" onmouseover="this.style.borderColor='#3b82f6'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='#334155'; this.style.transform='translateY(0)'">
+					<div>
+						<span style="font-size: 2rem;">💼</span>
+						<h3 style="font-size: 1.1rem; margin: 0.75rem 0 0.5rem 0; color: #f8fafc;">Job Search Board</h3>
+						<p style="margin: 0; font-size: 0.82rem; color: #94a3b8; line-height: 1.45;">Aggregated tech roles (ML, DS, DE) matched to your skills, experience, and remote criteria.</p>
+					</div>
+					<button type="button" style="margin-top: 1rem; width: 100%; text-align: center; background: #3b82f6;">Open Job Board</button>
+				</div>
+
+				<!-- Card 3: AI Chatbot -->
+				<div style="background: #1e293b; border: 1px solid #334155; padding: 1.5rem; border-radius: 12px; display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; transition: transform 0.2s, border-color 0.2s; cursor: pointer;" onclick="window.location.href='/pages/chatbot.html'" onmouseover="this.style.borderColor='#10b981'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='#334155'; this.style.transform='translateY(0)'">
+					<div>
+						<span style="font-size: 2rem;">🤖</span>
+						<h3 style="font-size: 1.1rem; margin: 0.75rem 0 0.5rem 0; color: #f8fafc;">AI Study Partner</h3>
+						<p style="margin: 0; font-size: 0.82rem; color: #94a3b8; line-height: 1.45;">Get personalized coding feedback, resume audit checks, and technical interview mock sessions.</p>
+					</div>
+					<button type="button" style="margin-top: 1rem; width: 100%; text-align: center; background: #10b981;">Launch Chatbot</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Subview 2: OMDb UI Wrapper -->
+		<div id="omdb-subview" style="display: none;">
+			<h1>OMDb proxy – test UI</h1>
 		<div class="search-row">
 			<input type="text" id="search-input" placeholder="Search movies or series…" autocomplete="off">
 			<button type="button" id="search-btn">Search</button>
@@ -168,6 +211,62 @@
 	</div>
 
 	<script>
+		function showSubview(mode) {
+			var hub = document.getElementById('dashboard-hub');
+			var omdb = document.getElementById('omdb-subview');
+			var navHub = document.getElementById('nav-hub');
+			var navOmdb = document.getElementById('nav-omdb');
+			if (!hub || !omdb) return;
+			
+			if (mode === 'hub') {
+				hub.style.display = 'block';
+				omdb.style.display = 'none';
+				if (navHub) {
+					navHub.style.fontWeight = '600';
+					navHub.style.color = '#818cf8';
+					navHub.style.borderBottom = '2px solid #6366f1';
+					navHub.style.marginBottom = '-0.85rem';
+					navHub.style.paddingBottom = '0.75rem';
+				}
+				if (navOmdb) {
+					navOmdb.style.fontWeight = '500';
+					navOmdb.style.color = '#94a3b8';
+					navOmdb.style.borderBottom = 'none';
+					navOmdb.style.marginBottom = '0';
+					navOmdb.style.paddingBottom = '0';
+				}
+			} else {
+				hub.style.display = 'none';
+				omdb.style.display = 'block';
+				if (navOmdb) {
+					navOmdb.style.fontWeight = '600';
+					navOmdb.style.color = '#818cf8';
+					navOmdb.style.borderBottom = '2px solid #6366f1';
+					navOmdb.style.marginBottom = '-0.85rem';
+					navOmdb.style.paddingBottom = '0.75rem';
+				}
+				if (navHub) {
+					navHub.style.fontWeight = '500';
+					navHub.style.color = '#94a3b8';
+					navHub.style.borderBottom = 'none';
+					navHub.style.marginBottom = '0';
+					navHub.style.paddingBottom = '0';
+				}
+			}
+		}
+		if (document.getElementById('nav-hub')) {
+			document.getElementById('nav-hub').addEventListener('click', function(e) {
+				e.preventDefault();
+				showSubview('hub');
+			});
+		}
+		if (document.getElementById('nav-omdb')) {
+			document.getElementById('nav-omdb').addEventListener('click', function(e) {
+				e.preventDefault();
+				showSubview('omdb');
+			});
+		}
+
 		var UI_STORAGE = 'omdb_ui_unlocked';
 		var API_KEY_STORAGE = 'omdb_ui_api_key';
 		var base = window.location.origin;
@@ -680,6 +779,7 @@
 			if (savedKey && document.getElementById('api-key-input')) document.getElementById('api-key-input').value = savedKey;
 			initApiInfo();
 			checkDetailFromUrl();
+			showSubview('hub');
 		}
 		document.getElementById('api-key-input').addEventListener('input', function () {
 			var v = this.value.trim();
@@ -693,6 +793,7 @@
 					if (savedKey && document.getElementById('api-key-input')) document.getElementById('api-key-input').value = savedKey;
 					initApiInfo();
 					checkDetailFromUrl();
+					showSubview('hub');
 				}
 			}, 0);
 		});
