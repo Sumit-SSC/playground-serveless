@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>AI Study Partner &amp; Interview Prep</title>
+	<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+	<style>
+		* { box-sizing: border-box; }
+		body {
+			font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+			margin: 0;
+			padding: 1.25rem;
+			max-width: 1000px;
+			margin: 0 auto;
+			background: #020617;
+			color: #e2e8f0;
+			min-height: 100vh;
+			display: flex;
+			flex-direction: column;
+		}
+		a { color: #60a5fa; text-decoration: none; }
+		a:hover { text-decoration: underline; }
+		
+		/* Header styling */
+		header {
+			margin-bottom: 1.5rem;
+		}
+		h1 { font-size: 1.35rem; margin: 0 0 0.5rem 0; color: #f8fafc; }
+		
+		/* Navigation */
+		nav {
+			display: flex;
+			gap: 1.5rem;
+			margin-bottom: 2rem;
+			border-bottom: 1px solid #1e293b;
+			padding-bottom: 0.75rem;
+		}
+		nav a {
+			font-weight: 500;
+			color: #94a3b8;
+			text-decoration: none;
+			padding-bottom: 0.75rem;
+		}
+		nav a.active {
+			font-weight: 600;
+			color: #60a5fa;
+			border-bottom: 2px solid #3b82f6;
+			margin-bottom: -0.85rem;
+		}
+
+		/* Main container */
+		.chat-container {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+			background: #0f172a;
+			border: 1px solid #1e293b;
+			border-radius: 12px;
+			overflow: hidden;
+			min-height: 500px;
+		}
+
+		/* Top bar controls */
+		.chat-controls {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 1rem;
+			padding: 1rem;
+			background: #0f172a;
+			border-bottom: 1px solid #1e293b;
+			align-items: center;
+			justify-content: space-between;
+		}
+		.control-group {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+		}
+		select, input[type="password"], input[type="text"] {
+			padding: 0.45rem 0.75rem;
+			border-radius: 6px;
+			border: 1px solid #334155;
+			background: #1e293b;
+			color: #e2e8f0;
+			font-size: 0.85rem;
+		}
+		button {
+			padding: 0.45rem 1rem;
+			border-radius: 6px;
+			border: none;
+			background: #2563eb;
+			color: white;
+			font-weight: 600;
+			cursor: pointer;
+			font-size: 0.85rem;
+			transition: background 0.15s;
+		}
+		button:hover { background: #1d4ed8; }
+		button.secondary {
+			background: #334155;
+			color: #cbd5e1;
+		}
+		button.secondary:hover { background: #475569; }
+
+		/* Messages log */
+		.chat-messages {
+			flex: 1;
+			padding: 1.25rem;
+			overflow-y: auto;
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+			background: #020617;
+		}
+		.message {
+			max-width: 80%;
+			padding: 0.85rem 1.1rem;
+			border-radius: 12px;
+			font-size: 0.9rem;
+			line-height: 1.5;
+		}
+		.message.user {
+			align-self: flex-end;
+			background: #2563eb;
+			color: white;
+			border-bottom-right-radius: 2px;
+		}
+		.message.assistant {
+			align-self: flex-start;
+			background: #1e293b;
+			color: #e2e8f0;
+			border-bottom-left-radius: 2px;
+			border: 1px solid #334155;
+		}
+		.message pre {
+			background: #0f172a;
+			padding: 0.75rem;
+			border-radius: 6px;
+			overflow-x: auto;
+			font-family: monospace;
+			border: 1px solid #1e293b;
+		}
+		.message code {
+			font-family: monospace;
+			background: #0f172a;
+			padding: 0.1rem 0.3rem;
+			border-radius: 4px;
+		}
+
+		/* Input area */
+		.chat-input-area {
+			padding: 1rem;
+			background: #0f172a;
+			border-top: 1px solid #1e293b;
+			display: flex;
+			gap: 0.75rem;
+		}
+		.chat-input-area input {
+			flex: 1;
+			background: #020617;
+			border: 1px solid #334155;
+			color: #e2e8f0;
+			padding: 0.75rem 1rem;
+			border-radius: 8px;
+			font-size: 0.9rem;
+		}
+		.chat-input-area input:focus {
+			outline: none;
+			border-color: #2563eb;
+		}
+
+		/* Status and banner */
+		.api-key-banner {
+			background: #7c2d12;
+			border: 1px solid #ea580c;
+			color: #ffedd5;
+			padding: 0.75rem 1rem;
+			border-radius: 8px;
+			margin-bottom: 1rem;
+			font-size: 0.82rem;
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+	</style>
+</head>
+<body>
+
+	<nav>
+		<a href="/">🎬 OMDb Movie Proxy</a>
+		<a href="/jobs">💼 Job Search Board</a>
+		<a href="/pages/chatbot.html" class="active">🤖 AI Study Partner</a>
+	</nav>
+
+	<header>
+		<h1>🤖 AI Study Partner &amp; Interview Prep</h1>
+		<p style="margin:0;font-size:0.85rem;color:#94a3b8;">
+			Your personal developer preparation coach. Toggle study modes and test yourself using Google's free Gemini API.
+		</p>
+	</header>
+
+	<div id="key-banner" class="api-key-banner" style="display: none;">
+		<span>⚠️ Please enter a <strong>Gemini API Key</strong> in the settings above to enable the AI coach. You can get one for free from Google AI Studio.</span>
+		<button onclick="document.getElementById('key-input').focus()" class="secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">Enter Key</button>
+	</div>
+
+	<div class="chat-container">
+		<div class="chat-controls">
+			<div class="control-group">
+				<label for="chat-mode" style="font-size:0.8rem;color:#94a3b8;">Preset Mode:</label>
+				<select id="chat-mode">
+					<option value="interviewer">Mock Tech Interviewer (AI/DS/DE)</option>
+					<option value="reviewer">Resume Improver &amp; Auditor</option>
+					<option value="study">System Design &amp; Coding Coach</option>
+				</select>
+				<button id="reset-btn" class="secondary">Reset Session</button>
+			</div>
+			
+			<div class="control-group">
+				<input type="password" id="key-input" placeholder="Paste Gemini API Key" autocomplete="off" style="max-width: 200px;">
+				<button id="save-key-btn">Save Key</button>
+			</div>
+		</div>
+
+		<div class="chat-messages" id="messages-log">
+			<div class="message assistant">
+				👋 Hello! I am your AI Study Partner. 
+				<br><br>
+				Choose a mode above (like <strong>Mock Tech Interviewer</strong>), paste your resume, or ask me any coding/architectural questions to start practicing!
+			</div>
+		</div>
+
+		<div class="chat-input-area">
+			<input type="text" id="user-input" placeholder="Type a message or paste code/resume..." autocomplete="off">
+			<button id="send-btn">Send</button>
+		</div>
+	</div>
+
+	<script>
+		// Setup Key Persistence
+		const keyInput = document.getElementById('key-input');
+		const saveKeyBtn = document.getElementById('save-key-btn');
+		const keyBanner = document.getElementById('key-banner');
+		const messagesLog = document.getElementById('messages-log');
+		const userInput = document.getElementById('user-input');
+		const sendBtn = document.getElementById('send-btn');
+		const resetBtn = document.getElementById('reset-btn');
+		const chatMode = document.getElementById('chat-mode');
+
+		let apiKey = localStorage.getItem('gemini_api_key') || '';
+		if (apiKey) {
+			keyInput.value = apiKey;
+			keyBanner.style.display = 'none';
+		} else {
+			keyBanner.style.display = 'flex';
+		}
+
+		saveKeyBtn.addEventListener('click', () => {
+			apiKey = keyInput.value.trim();
+			if (apiKey) {
+				localStorage.setItem('gemini_api_key', apiKey);
+				keyBanner.style.display = 'none';
+				alert('Gemini API Key saved securely in your browser!');
+			} else {
+				localStorage.removeItem('gemini_api_key');
+				keyBanner.style.display = 'flex';
+			}
+		});
+
+		// Preset System Prompts
+		const SYSTEM_PROMPTS = {
+			interviewer: "You are a professional mock interviewer for technical roles in Data Science, Machine Learning, and Data Engineering. Your goal is to ask the user coding, SQL, machine learning theory, or system design questions one by one. Do not output the entire interview at once. Wait for the user's answer, provide constructive feedback on their answer, and then ask the next question.",
+			reviewer: "You are an expert resume reviewer and technical recruiter. The user will paste their resume or bullet points. Review the details, check for impact metrics, and provide specific actionable suggestions to optimize the resume for Data Science and ML Engineering roles.",
+			study: "You are an expert Coding and System Design Coach. Your goal is to help the user understand complex technical topics, explain algorithms step-by-step, draft code blueprints, or review system architectures."
+		};
+
+		let chatHistory = [];
+
+		function appendMessage(sender, text) {
+			const bubble = document.createElement('div');
+			bubble.classList.add('message', sender);
+			
+			// Parse markdown on response
+			if (sender === 'assistant' && window.marked) {
+				bubble.innerHTML = marked.parse(text);
+			} else {
+				bubble.textContent = text;
+			}
+			
+			messagesLog.appendChild(bubble);
+			messagesLog.scrollTop = messagesLog.scrollHeight;
+		}
+
+		async function sendToGemini() {
+			if (!apiKey) {
+				alert('Please enter your Gemini API Key first!');
+				return;
+			}
+
+			const prompt = userInput.value.trim();
+			if (!prompt) return;
+
+			appendMessage('user', prompt);
+			userInput.value = '';
+
+			// Show loading placeholder
+			const loadingBubble = document.createElement('div');
+			loadingBubble.classList.add('message', 'assistant');
+			loadingBubble.textContent = 'Thinking...';
+			messagesLog.appendChild(loadingBubble);
+			messagesLog.scrollTop = messagesLog.scrollHeight;
+
+			const activeMode = chatMode.value;
+			const systemInstruction = SYSTEM_PROMPTS[activeMode];
+
+			// Prepare messages in Gemini format
+			// Gemini Developer API format for gemini-1.5-flash
+			const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+			const contents = [];
+			// Add system instructions if supported, or prepended to user history
+			contents.push({
+				role: 'user',
+				parts: [{ text: `System Instruction: ${systemInstruction}` }]
+			});
+			contents.push({
+				role: 'model',
+				parts: [{ text: "Understood. I will adopt this role now." }]
+			});
+
+			// Add conversation history
+			chatHistory.forEach(msg => {
+				contents.push({
+					role: msg.role === 'user' ? 'user' : 'model',
+					parts: [{ text: msg.text }]
+				});
+			});
+
+			// Add current message
+			contents.push({
+				role: 'user',
+				parts: [{ text: prompt }]
+			});
+
+			try {
+				const res = await fetch(url, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({ contents })
+				});
+
+				const data = await res.json();
+				messagesLog.removeChild(loadingBubble);
+
+				if (data.candidates && data.candidates[0].content.parts[0].text) {
+					const reply = data.candidates[0].content.parts[0].text;
+					appendMessage('assistant', reply);
+					
+					// Save history
+					chatHistory.push({ role: 'user', text: prompt });
+					chatHistory.push({ role: 'model', text: reply });
+				} else {
+					appendMessage('assistant', '⚠️ Could not read response from Gemini. Check if your API key is valid.');
+				}
+			} catch (err) {
+				messagesLog.removeChild(loadingBubble);
+				appendMessage('assistant', `⚠️ Request failed: ${err.message}`);
+			}
+		}
+
+		sendBtn.addEventListener('click', sendToGemini);
+		userInput.addEventListener('keypress', (e) => {
+			if (e.key === 'Enter') sendToGemini();
+		});
+
+		resetBtn.addEventListener('click', () => {
+			chatHistory = [];
+			messagesLog.innerHTML = `
+				<div class="message assistant">
+					🔄 Session reset! 
+					<br><br>
+					Choose a mode above (like <strong>Mock Tech Interviewer</strong>) to start a fresh discussion.
+				</div>
+			`;
+		});
+	</script>
+</body>
+</html>
