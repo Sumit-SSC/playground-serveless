@@ -111,6 +111,7 @@
 			<button id="btn-live" class="secondary">Fetch live</button>
 			<button id="btn-refresh" class="secondary">Refresh all portals</button>
 			<button id="btn-debug" class="secondary">Sources debug</button>
+			<button id="btn-notify-tg" class="secondary" style="background:#2563eb;color:white;" title="Notify new jobs to Telegram">Send to TG 📢</button>
 			<label style="display:flex;align-items:center;gap:0.35rem;font-size:0.75rem;color:#9ca3af;">
 				<input type="checkbox" id="live-on-filter" style="margin:0;">
 				Live update when changing filters
@@ -506,6 +507,36 @@
 			document.getElementById('btn-live').addEventListener('click', callSnapshot);
 			document.getElementById('btn-refresh').addEventListener('click', callRefresh);
 			document.getElementById('btn-debug').addEventListener('click', callSourcesDebug);
+			document.getElementById('btn-notify-tg').addEventListener('click', function () {
+				var notifyBtn = document.getElementById('btn-notify-tg');
+				notifyBtn.disabled = true;
+				var oldText = notifyBtn.textContent;
+				notifyBtn.textContent = '⌛ Sending...';
+				var renderBase = 'https://job-search-api-w042.onrender.com';
+				fetch(renderBase + '/api/notify-recent', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					}
+				})
+				.then(function (res) {
+					return res.json().catch(function () { return { ok: false, error: 'Non-JSON response' }; });
+				})
+				.then(function (data) {
+					notifyBtn.disabled = false;
+					notifyBtn.textContent = oldText;
+					if (data && data.ok) {
+						alert('✅ Telegram Alert Sent! Successfully posted ' + (data.count || 0) + ' new jobs to your topics.');
+					} else {
+						alert('❌ Failed to send alerts: ' + ((data && data.error) || 'Unknown error'));
+					}
+				})
+				.catch(function (err) {
+					notifyBtn.disabled = false;
+					notifyBtn.textContent = oldText;
+					alert('❌ Network error: ' + err.message);
+				});
+			});
 			document.getElementById('sort').addEventListener('change', function () {
 				applyFilters();
 				if (document.getElementById('live-on-filter') && document.getElementById('live-on-filter').checked) callSnapshot();
