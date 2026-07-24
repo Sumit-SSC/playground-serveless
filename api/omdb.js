@@ -130,6 +130,58 @@ function checkRateLimit(ip) {
 	return null;
 }
 
+async function getPremiumPosterFallback(imdbID, title, type, year) {
+	const tmdbKey = (process.env.TMDB_API_KEY || '').trim();
+	const rpdbKey = (process.env.RPDB_API_KEY || '').trim();
+
+	if (rpdbKey && imdbID && /^tt\d+$/.test(imdbID)) {
+		return `https://api.rpdb.co/v1/lookup?api_key=${rpdbKey}&imdb_id=${imdbID}`;
+	}
+
+	if (tmdbKey) {
+		try {
+			if (imdbID && /^tt\d+$/.test(imdbID)) {
+				const findUrl = `https://api.themoviedb.org/3/find/${imdbID}?api_key=${tmdbKey}&external_source=imdb_id`;
+				const res = await fetch(findUrl);
+				if (res.ok) {
+					const data = await res.json();
+					const movie = (data.movie_results && data.movie_results[0]);
+					const tv = (data.tv_results && data.tv_results[0]);
+					const item = movie || tv;
+					if (item && item.poster_path) {
+						return `https://image.tmdb.org/t/p/w600_and_h900_bestv2${item.poster_path}`;
+					}
+				}
+			}
+			
+			if (title) {
+				let searchUrl = `https://api.themoviedb.org/3/search/multi?api_key=${tmdbKey}&query=${encodeURIComponent(title)}`;
+				const res = await fetch(searchUrl);
+				if (res.ok) {
+					const data = await res.json();
+					if (data.results && data.results.length > 0) {
+						let bestMatch = data.results[0];
+						if (year) {
+							const matched = data.results.find(item => {
+								const date = item.release_date || item.first_air_date || '';
+								return date.startsWith(year);
+							});
+							if (matched) bestMatch = matched;
+						}
+						if (bestMatch && bestMatch.poster_path) {
+							return `https://image.tmdb.org/t/p/w600_and_h900_bestv2${bestMatch.poster_path}`;
+						}
+					}
+				}
+			}
+		} catch (e) {
+			console.error('TMDb poster fallback failed:', e);
+		}
+	}
+	return null;
+}
+
+
 module.exports = async function handler(req, res) {
 	var origin = req.headers.origin || '';
 	if (!origin && req.headers.referer) {
@@ -215,15 +267,19 @@ module.exports = async function handler(req, res) {
 			const r = await fetch(url);
 			const data = await r.json().catch(function () { return null; });
 			const list = (data && data.Search && Array.isArray(data.Search)) ? data.Search : [];
-			const results = list.slice(0, 10).map(function (item) {
+			const results = await Promise.all(list.slice(0, 10).map(async function (item) {
+				let poster = (item.Poster && item.Poster !== 'N/A' && String(item.Poster).indexOf('http') === 0) ? item.Poster : null;
+				if (!poster) {
+					poster = await getPremiumPosterFallback(item.imdbID, item.Title, item.Type, item.Year ? item.Year.slice(0, 4) : '');
+				}
 				return {
 					Title: item.Title || '',
 					Year: item.Year || '',
 					imdbID: item.imdbID || '',
-					Poster: (item.Poster && item.Poster !== 'N/A' && String(item.Poster).indexOf('http') === 0) ? item.Poster : null,
+					Poster: poster,
 					Type: item.Type || ''
 				};
-			});
+			}));
 			setCors();
 			res.setHeader('Cache-Control', 'public, max-age=300');
 			return res.status(200).json({ results: results, usage: usagePayload() });
@@ -245,12 +301,16 @@ module.exports = async function handler(req, res) {
 				setCors();
 				return res.status(200).json({ error: 'Not found', usage: usagePayload() });
 			}
+			let poster = (data.Poster && data.Poster !== 'N/A' && String(data.Poster).indexOf('http') === 0) ? data.Poster : null;
+			if (!poster) {
+				poster = await getPremiumPosterFallback(data.imdbID, data.Title, data.Type, data.Year ? data.Year.slice(0, 4) : '');
+			}
 			const out = {
 				Title: data.Title || '', Year: data.Year || '', Rated: data.Rated || '', Released: data.Released || '',
 				Runtime: data.Runtime || '', Genre: data.Genre || '', Director: data.Director || '', Writer: data.Writer || '',
 				Actors: data.Actors || '', Plot: data.Plot || '', Language: data.Language || '', Country: data.Country || '',
 				Awards: data.Awards || '', BoxOffice: data.BoxOffice || '',
-				Poster: (data.Poster && data.Poster !== 'N/A' && String(data.Poster).indexOf('http') === 0) ? data.Poster : null,
+				Poster: poster,
 				imdbRating: data.imdbRating || '', imdbID: data.imdbID || '', Type: data.Type || ''
 			};
 			setCors();
@@ -274,7 +334,10 @@ module.exports = async function handler(req, res) {
 	try {
 		const r = await fetch(url);
 		const data = await r.json().catch(function () { return null; });
-		const poster = data && data.Poster && data.Poster !== 'N/A' && String(data.Poster).indexOf('http') === 0 ? data.Poster : null;
+		let poster = data && data.Poster && data.Poster !== 'N/A' && String(data.Poster).indexOf('http') === 0 ? data.Poster : null;
+		if (!poster) {
+			poster = await getPremiumPosterFallback(data ? data.imdbID : null, t, type, data && data.Year ? data.Year.slice(0, 4) : '');
+		}
 		setCors();
 		res.setHeader('Cache-Control', 'public, max-age=86400');
 		return res.status(200).json({ poster: poster, usage: usagePayload() });
